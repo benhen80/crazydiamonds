@@ -176,12 +176,20 @@
   }
   .coro-btn:focus { outline: none; border-color: #d4af37; }
   .coro-btn .placeholder { color: #666; }
+
+  /* Dropdown FIXED - si sovrappone a tutto */
   .coro-dropdown {
-    display: none; position: absolute; top: 100%; left: 0; right: 0;
-    background: #1a1a1a; border: 1px solid #d4af37; border-radius: 4px;
-    margin-top: 2px; padding: 4px; z-index: 100;
-    max-height: 220px; overflow-y: auto;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.8);
+    display: none;
+    position: fixed;
+    background: #1a1a1a;
+    border: 1px solid #d4af37;
+    border-radius: 6px;
+    padding: 6px;
+    z-index: 10000;
+    max-height: 260px;
+    overflow-y: auto;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.9);
+    min-width: 180px;
   }
   .coro-dropdown.open { display: block; }
   .coro-dropdown label {
@@ -256,7 +264,7 @@
     header h1 { color: black; font-size: 1.7em; letter-spacing: 2px; }
     header p { color: #555; font-size: 0.8em; margin-top: 2px; }
 
-    .config-bar, .modal-overlay { display: none !important; }
+    .config-bar, .modal-overlay, .coro-dropdown { display: none !important; }
     .container { display: block; max-width: 100%; width: 100%; }
     #catalog-panel, .search-box, .album-filter, .btn-toggle-form,
     .add-form, .actions, .btn-del, .toast, .empty { display: none !important; }
@@ -326,7 +334,6 @@
   <button class="btn-config" onclick="apriConfigurazione()">⚙️ Configura band</button>
 </div>
 
-<!-- MODALE CONFIGURAZIONE -->
 <div class="modal-overlay" id="modal-overlay">
   <div class="modal">
     <h3>⚙️ Configura la band</h3>
@@ -546,7 +553,6 @@ CATALOGO_BASE.push(
   { titolo: "Louder than Words", album: "The Endless River", durata: 6.6 }
 );
 
-// ========== BAND ==========
 let membriBand = JSON.parse(localStorage.getItem('cd_membri_band') || '[]');
 
 function salvaMembri() {
@@ -575,7 +581,6 @@ function chiudiConfigurazione() {
 
 function salvaConfigurazione() {
   const raw = document.getElementById('band-input').value;
-  // Split su righe o virgole, trim, filtra vuoti, rimuovi duplicati
   const nomi = raw.split(/[\n,]+/).map(n => n.trim()).filter(n => n.length > 0);
   const unici = [...new Set(nomi)];
   membriBand = unici;
@@ -586,7 +591,6 @@ function salvaConfigurazione() {
   showToast(`✅ Band aggiornata (${membriBand.length} membri)`);
 }
 
-// ========== STATO ==========
 let catalogoCustom = JSON.parse(localStorage.getItem('cd_catalogo_custom') || '{"aggiunti":[],"rimossi":[]}');
 if (!catalogoCustom.aggiunti) catalogoCustom.aggiunti = [];
 if (!catalogoCustom.rimossi) catalogoCustom.rimossi = [];
@@ -679,12 +683,10 @@ function renderScaletta() {
   }
 
   setEl.innerHTML = scaletta.map((s, i) => {
-    // Coro: array di nomi
     const coroArr = Array.isArray(s.coro) ? s.coro : [];
     const coroTxt = coroArr.length === 0
       ? '<span class="placeholder">👥 Coro...</span>'
       : '👥 ' + coroArr.join(', ');
-    // Voci dropdown
     const coroChecks = membriBand.map(nome => {
       const checked = coroArr.includes(nome) ? 'checked' : '';
       return `<label><input type="checkbox" ${checked}
@@ -731,21 +733,56 @@ function renderScaletta() {
   setupDragDrop();
 }
 
-// Apre/chiude dropdown coro
+// Dropdown coro - FIXED, sovrapposta, posizionata via JS
 function toggleCoroDropdown(event, i) {
   event.stopPropagation();
-  // chiudi tutti gli altri
-  document.querySelectorAll('.coro-dropdown').forEach(dd => {
-    if (dd.id !== 'coro-dd-' + i) dd.classList.remove('open');
-  });
-  document.getElementById('coro-dd-' + i).classList.toggle('open');
+  const dd = document.getElementById('coro-dd-' + i);
+  const wasOpen = dd.classList.contains('open');
+
+  document.querySelectorAll('.coro-dropdown').forEach(d => d.classList.remove('open'));
+
+  if (wasOpen) return;
+
+  const btn = event.currentTarget;
+  const rect = btn.getBoundingClientRect();
+
+  dd.style.visibility = 'hidden';
+  dd.classList.add('open');
+
+  const ddWidth = Math.max(rect.width, 200);
+  const ddHeight = dd.offsetHeight;
+
+  let left = rect.right - ddWidth;
+  let top = rect.bottom + 4;
+
+  if (left < 10) left = 10;
+  if (left + ddWidth > window.innerWidth - 10) {
+    left = window.innerWidth - ddWidth - 10;
+  }
+
+  if (top + ddHeight > window.innerHeight - 10) {
+    top = rect.top - ddHeight - 4;
+    if (top < 10) top = 10;
+  }
+
+  dd.style.left = left + 'px';
+  dd.style.top = top + 'px';
+  dd.style.width = ddWidth + 'px';
+  dd.style.visibility = 'visible';
 }
 
-// Chiude dropdown cliccando fuori
 document.addEventListener('click', e => {
   if (!e.target.closest('.coro-box')) {
     document.querySelectorAll('.coro-dropdown').forEach(dd => dd.classList.remove('open'));
   }
+});
+
+document.addEventListener('scroll', () => {
+  document.querySelectorAll('.coro-dropdown').forEach(dd => dd.classList.remove('open'));
+}, true);
+
+window.addEventListener('resize', () => {
+  document.querySelectorAll('.coro-dropdown').forEach(dd => dd.classList.remove('open'));
 });
 
 function toggleCoro(i, nome, checked) {
@@ -764,7 +801,6 @@ function impostaCoroTutti(i) {
   if (!scaletta[i]) return;
   scaletta[i].coro = [...membriBand];
   salva();
-  // aggiorna i checkbox
   const dd = document.getElementById('coro-dd-' + i);
   if (dd) dd.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
   aggiornaCoroUI(i);
@@ -965,7 +1001,6 @@ document.getElementById('search').addEventListener('input', renderCatalogo);
   });
 });
 
-// Init
 aggiornaBarraBand();
 popolaFiltroAlbum();
 renderCatalogo();
