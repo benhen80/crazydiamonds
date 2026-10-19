@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Crazy Diamonds - Scaletta</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #0a0a0a;
+    color: #e0e0e0;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  header {
+    text-align: center;
+    margin-bottom: 25px;
+    border-bottom: 2px solid #d4af37;
+    padding-bottom: 15px;
+  }
+  header h1 { font-size: 2em; color: #d4af37; letter-spacing: 3px; text-transform: uppercase; }
+  header p { color: #888; font-size: 0.9em; margin-top: 5px; }
+
+  .container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1400px; margin: 0 auto; }
+  @media (max-width: 900px) { .container { grid-template-columns: 1fr; } }
+
+  .panel { background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 18px; }
+  .panel h2 {
+    color: #d4af37; font-size: 1.1em; margin-bottom: 12px;
+    text-transform: uppercase; letter-spacing: 1px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .panel h2 span { color: #666; font-size: 0.8em; font-weight: normal; }
+
+  .search-box, .album-filter {
+    width: 100%; padding: 8px 12px; background: #0f0f0f;
+    border: 1px solid #333; border-radius: 6px; color: #e0e0e0;
+    margin-bottom: 10px; font-size: 0.9em;
+  }
+  .search-box:focus, .album-filter:focus { outline: none; border-color: #d4af37; }
+  .album-filter { cursor: pointer; }
+
+  .add-form {
+    background: #0f0f0f; border: 1px dashed #444; border-radius: 6px;
+    padding: 12px; margin-bottom: 12px; display: none; flex-direction: column; gap: 8px;
+  }
+  .add-form.open { display: flex; }
+  .add-form input {
+    padding: 7px 10px; background: #1a1a1a; border: 1px solid #333;
+    border-radius: 5px; color: #e0e0e0; font-size: 0.85em;
+  }
+  .add-form input:focus { outline: none; border-color: #d4af37; }
+  .add-form .row { display: flex; gap: 8px; }
+  .add-form .row input:first-child { flex: 3; }
+  .add-form .row input:last-child { flex: 1; }
+  .add-form .form-actions { display: flex; gap: 8px; }
+
+  .btn-toggle-form {
+    background: transparent; color: #d4af37; border: 1px solid #d4af37;
+    padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8em;
+    margin-bottom: 10px; width: 100%; transition: 0.2s;
+  }
+  .btn-toggle-form:hover { background: #d4af37; color: #0a0a0a; }
+
+  .song-list {
+    max-height: 480px; overflow-y: auto; display: flex;
+    flex-direction: column; gap: 6px;
+  }
+  .song-list::-webkit-scrollbar { width: 8px; }
+  .song-list::-webkit-scrollbar-track { background: #0f0f0f; }
+  .song-list::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+
+  .song-item {
+    background: #222; padding: 10px 14px; border-radius: 6px; cursor: pointer;
+    display: flex; justify-content: space-between; align-items: center;
+    transition: all 0.2s; border-left: 3px solid transparent;
+    font-size: 0.9em; gap: 8px;
+  }
+  .song-item:hover { background: #2a2a2a; border-left-color: #d4af37; }
+  .song-item .album { color: #666; font-size: 0.75em; font-style: italic; }
+  .song-item .add-icon { color: #d4af37; font-weight: bold; flex-shrink: 0; }
+  .song-item .del-icon {
+    color: #ff5555; background: transparent; border: none;
+    font-size: 1.1em; cursor: pointer; padding: 0 4px; flex-shrink: 0;
+  }
+  .song-item .del-icon:hover { color: #ff8888; }
+
+  .setlist-item {
+    background: #222; padding: 10px 12px; border-radius: 6px;
+    display: flex; align-items: center; gap: 10px;
+    border-left: 3px solid #d4af37; font-size: 0.9em; cursor: grab;
+  }
+  .setlist-item.dragging { opacity: 0.4; }
+  .setlist-item.drag-over { border-top: 3px solid #d4af37; }
+  .setlist-item .num {
+    background: #d4af37; color: #0a0a0a; width: 26px; height: 26px;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-weight: bold; font-size: 0.8em; flex-shrink: 0;
+  }
+  .setlist-item .title { flex: 1; }
+  .setlist-item .album { color: #666; font-size: 0.75em; }
+
+  /* Voci nella scaletta */
+  .setlist-item .voices {
+    display: flex; flex-direction: column; gap: 2px;
+    flex-shrink: 0; width: 160px;
+  }
+  .setlist-item .voices input {
+    background: #0f0f0f; border: 1px solid #444; border-radius: 4px;
+    color: #e0e0e0; font-size: 0.72em; padding: 3px 6px;
+    font-family: inherit; width: 100%;
+  }
+  .setlist-item .voices input:focus { outline: none; border-color: #d4af37; }
+  .setlist-item .voices input::placeholder { color: #555; }
+  .setlist-item .voices .voice-print { display: none; }
+  @media (max-width: 900px) { .setlist-item .voices { width: 120px; } }
+
+  .btn {
+    background: #d4af37; color: #0a0a0a; border: none;
+    padding: 10px 18px; border-radius: 6px; cursor: pointer;
+    font-weight: bold; font-size: 0.9em; transition: 0.2s;
+  }
+  .btn:hover { background: #e8c860; }
+  .btn:disabled { background: #444; color: #888; cursor: not-allowed; }
+  .btn-secondary { background: transparent; color: #d4af37; border: 1px solid #d4af37; }
+  .btn-secondary:hover { background: #d4af37; color: #0a0a0a; }
+  .btn-danger {
+    background: transparent; color: #ff5555; border: 1px solid #ff5555;
+    padding: 4px 10px; font-size: 0.75em;
+  }
+  .btn-danger:hover { background: #ff5555; color: white; }
+  .btn-del { background: transparent; color: #ff5555; border: none; font-size: 1.2em; cursor: pointer; padding: 0 6px; }
+
+  .actions { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
+  .actions .btn { flex: 1; }
+
+  .empty { text-align: center; color: #555; padding: 30px; font-style: italic; font-size: 0.9em; }
+
+  .stats {
+    display: flex; justify-content: space-between; font-size: 0.85em;
+    color: #888; margin-top: 10px; padding-top: 10px; border-top: 1px solid #333;
+  }
+
+  .toast {
+    position: fixed; bottom: 20px; left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: #d4af37; color: #0a0a0a; padding: 10px 24px;
+    border-radius: 8px; font-weight: bold; font-size: 0.9em;
+    transition: transform 0.3s, opacity 0.3s; z-index: 1000; opacity: 0;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+  @media print {
+    @page { size: A4 portrait; margin: 1cm; }
+
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+    html, body {
+      background: white; color: black;
+      padding: 0; margin: 0; width: 100%; height: auto;
+    }
+    body { font-size: 11px; }
+
+    header {
+      margin: 0 0 8px 0; padding-bottom: 6px;
+      border-bottom: 2px solid black; text-align: center;
+      page-break-after: avoid; break-after: avoid;
+    }
+    header h1 { color: black; font-size: 1.7em; letter-spacing: 2px; }
+    header p { color: #555; font-size: 0.8em; margin-top: 2px; }
+
+    .container { display: block; max-width: 100%; width: 100%; }
+
+    #catalog-panel, .search-box, .album-filter, .btn-toggle-form,
+    .add-form, .actions, .btn-del, .toast, .empty { display: none !important; }
+
+    #setlist-panel {
+      border: none; padding: 0; background: white; display: block;
+      page-break-inside: avoid; break-inside: avoid;
+    }
+    #setlist-panel h2 {
+      color: black; font-size: 1.15em; border-bottom: 2px solid black;
+      padding-bottom: 4px; margin: 0 0 8px 0;
+      page-break-after: avoid; break-after: avoid;
+    }
+    #setlist-panel h2 span { color: #555; }
+
+    #setlist {
+      display: flex; flex-direction: column; justify-content: flex-start;
+      gap: 4px; max-height: none; overflow: hidden; margin: 0; padding: 0;
+    }
+
+    .setlist-item {
+      background: white; border-left: 4px solid black; color: black;
+      padding: var(--print-padding, 6px 10px);
+      font-size: var(--print-font-size, 13px);
+      page-break-inside: avoid; break-inside: avoid; cursor: default;
+      border-radius: 4px; box-sizing: border-box;
+      display: flex; align-items: center; overflow: hidden;
+    }
+    .setlist-item .num {
+      width: var(--print-num-size, 26px); height: var(--print-num-size, 26px);
+      font-size: var(--print-num-font, 13px); background: black; color: white;
+      flex-shrink: 0;
+    }
+    .setlist-item .album { color: #666; font-size: var(--print-album-font, 11px); }
+
+    /* Voci nel PDF */
+    .setlist-item .voices {
+      display: flex; flex-direction: column; gap: 0;
+      width: 32%; flex-shrink: 0; text-align: right;
+      font-size: calc(var(--print-font-size, 13px) * 0.8);
+      line-height: 1.15;
+    }
+    .setlist-item .voices input { display: none; }
+    .setlist-item .voices .voice-print { display: block; }
+    .setlist-item .voices .voice-print:empty { display: none; }
+    .setlist-item .voices .voice-print b { font-weight: bold; }
+
+    .stats {
+      color: #333; font-size: 1em; margin-top: 8px; padding-top: 6px;
+      border-top: 2px solid #999; font-weight: bold;
+      page-break-before: avoid; break-before: avoid;
+    }
+    .stats span:last-child { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>💎 Crazy Diamonds</h1>
+  <p>Pink Floyd Tribute Band — Scaletta Live</p>
+</header>
+
+<div class="container">
+  <div class="panel" id="catalog-panel">
+    <h2>Catalogo Brani <span id="catalog-count"></span></h2>
+    <button class="btn-toggle-form" onclick="toggleForm()" id="toggle-form-btn">➕ Aggiungi brano al catalogo</button>
+    <div class="add-form" id="add-form">
+      <input type="text" id="new-titolo" placeholder="Titolo brano *">
+      <input type="text" id="new-album" placeholder="Album (opzionale)">
+      <div class="row">
+        <input type="number" id="new-durata" placeholder="Durata in minuti" step="0.1" min="0">
+        <button class="btn" onclick="aggiungiAlCatalogo()">Salva</button>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-secondary" onclick="toggleForm()" style="flex:1;">Annulla</button>
+      </div>
+    </div>
+    <select class="album-filter" id="album-filter" onchange="renderCatalogo()">
+      <option value="">🎵 Tutti gli album</option>
+    </select>
+    <input type="text" class="search-box" id="search" placeholder="🔍 Cerca brano o album...">
+    <div class="song-list" id="catalog"></div>
+  </div>
+
+  <div class="panel" id="setlist-panel">
+    <h2>Scaletta Concerto <span id="setlist-count"></span></h2>
+    <div class="song-list" id="setlist"></div>
+    <div class="stats">
+      <span id="total-time">Durata: 0:00</span>
+      <span>Trascina per riordinare</span>
+    </div>
+    <div class="actions">
+      <button class="btn" onclick="printPDF()" id="print-btn" disabled>🖨️ Stampa PDF</button>
+      <button class="btn btn-danger" onclick="clearSetlist()" id="clear-btn" disabled>Svuota Scaletta</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const CATALOGO_BASE = [
+  { titolo: "Astronomy Domine", album: "The Piper at the Gates of Dawn", durata: 4.2 },
+  { titolo: "Lucifer Sam", album: "The Piper at the Gates of Dawn", durata: 3.1 },
+  { titolo: "Matilda Mother", album: "The Piper at the Gates of Dawn", durata: 3.1 },
+  { titolo: "Flaming", album: "The Piper at the Gates of Dawn", durata: 2.8 },
+  { titolo: "Pow R. Toc H.", album: "The Piper at the Gates of Dawn", durata: 4.5 },
+  { titolo: "Take Up Thy Stethoscope and Walk", album: "The Piper at the Gates of Dawn", durata: 3.1 },
+  { titolo: "Interstellar Overdrive", album: "The Piper at the Gates of Dawn", durata: 9.7 },
+  { titolo: "The Gnome", album: "The Piper at the Gates of Dawn", durata: 2.2 },
+  { titolo: "Chapter 24", album: "The Piper at the Gates of Dawn", durata: 3.7 },
+  { titolo: "The Scarecrow", album: "The Piper at the Gates of Dawn", durata: 2.2 },
+  { titolo: "Bike", album: "The Piper at the Gates of Dawn", durata: 3.4 },
+  { titolo: "Let There Be More Light", album: "A Saucerful of Secrets", durata: 5.6 },
+  { titolo: "Remember a Day", album: "A Saucerful of Secrets", durata: 4.6 },
+  { titolo: "Set the Controls for the Heart of the Sun", album: "A Saucerful of Secrets", durata: 5.5 },
+  { titolo: "Corporal Clegg", album: "A Saucerful of Secrets", durata: 4.2 },
+  { titolo: "A Saucerful of Secrets", album: "A Saucerful of Secrets", durata: 12.0 },
+  { titolo: "See-Saw", album: "A Saucerful of Secrets", durata: 4.6 },
+  { titolo: "Jugband Blues", album: "A Saucerful of Secrets", durata: 3.0 },
+  { titolo: "Cirrus Minor", album: "More", durata: 5.3 },
+  { titolo: "The Nile Song", album: "More", durata: 3.5 },
+  { titolo: "Crying Song", album: "More", durata: 3.6 },
+  { titolo: "Up the Khyber", album: "More", durata: 2.2 },
+  { titolo: "Green Is the Colour", album: "More", durata: 3.0 },
+  { titolo: "Cymbaline", album: "More", durata: 4.8 },
+  { titolo: "Party Sequence", album: "More", durata: 1.1 },
+  { titolo: "Main Theme", album: "More", durata: 5.5 },
+  { titolo: "Ibiza Bar", album: "More", durata: 3.3 },
+  { titolo: "More Blues", album: "More", durata: 2.2 },
+  { titolo: "Quicksilver", album: "More", durata: 7.2 },
+  { titolo: "A Spanish Piece", album: "More", durata: 1.1 },
+  { titolo: "Dramatic Theme", album: "More", durata: 2.3 },
+  { titolo: "Sysyphus (Part 1)", album: "Ummagumma", durata: 1.1 },
+  { titolo: "Sysyphus (Part 2)", album: "Ummagumma", durata: 3.5 },
+  { titolo: "Sysyphus (Part 3)", album: "Ummagumma", durata: 1.8 },
+  { titolo: "Sysyphus (Part 4)", album: "Ummagumma", durata: 7.0 },
+  { titolo: "Grantchester Meadows", album: "Ummagumma", durata: 7.5 },
+  { titolo: "Several Species of Small Furry Animals Gathered Together in a Cave and Grooving with a Pict", album: "Ummagumma", durata: 5.0 },
+  { titolo: "The Narrow Way (Part 1)", album: "Ummagumma", durata: 3.5 },
+  { titolo: "The Narrow Way (Part 2)", album: "Ummagumma", durata: 2.9 },
+  { titolo: "The Narrow Way (Part 3)", album: "Ummagumma", durata: 6.0 },
+  { titolo: "The Grand Vizier's Garden Party (Entrance)", album: "Ummagumma", durata: 1.0 },
+  { titolo: "The Grand Vizier's Garden Party (Entertainment)", album: "Ummagumma", durata: 7.1 },
+  { titolo: "The Grand Vizier's Garden Party (Exit)", album: "Ummagumma", durata: 0.7 },
+  { titolo: "Atom Heart Mother", album: "Atom Heart Mother", durata: 23.7 },
+  { titolo: "If", album: "Atom Heart Mother", durata: 4.5 },
+  { titolo: "Summer '68", album: "Atom Heart Mother", durata: 5.4 },
+  { titolo: "Fat Old Sun", album: "Atom Heart Mother", durata: 5.4 },
+  { titolo: "Alan's Psychedelic Breakfast", album: "Atom Heart Mother", durata: 13.0 },
+  { titolo: "One of These Days", album: "Meddle", durata: 5.9 },
+  { titolo: "A Pillow of Winds", album: "Meddle", durata: 5.2 },
+  { titolo: "Fearless", album: "Meddle", durata: 6.1 },
+  { titolo: "San Tropez", album: "Meddle", durata: 3.7 },
+  { titolo: "Seamus", album: "Meddle", durata: 2.3 },
+  { titolo: "Echoes", album: "Meddle", durata: 23.5 },
+  { titolo: "Obscured by Clouds", album: "Obscured by Clouds", durata: 3.1 },
+  { titolo: "When You're In", album: "Obscured by Clouds", durata: 2.5 },
+  { titolo: "Burning Bridges", album: "Obscured by Clouds", durata: 3.5 },
+  { titolo: "The Gold It's in the...", album: "Obscured by Clouds", durata: 3.1 },
+  { titolo: "Wot's... Uh the Deal", album: "Obscured by Clouds", durata: 5.2 },
+  { titolo: "Mudmen", album: "Obscured by Clouds", durata: 4.3 },
+  { titolo: "Childhood's End", album: "Obscured by Clouds", durata: 4.6 },
+  { titolo: "Free Four", album: "Obscured by Clouds", durata: 4.3 },
+  { titolo: "Stay", album: "Obscured by Clouds", durata: 4.1 },
+  { titolo: "Absolutely Curtains", album: "Obscured by Clouds", durata: 5.9 }
+];
+CATALOGO_BASE.push(
+  { titolo: "Speak to Me", album: "The Dark Side of the Moon", durata: 1.1 },
+  { titolo: "Breathe (In the Air)", album: "The Dark Side of the Moon", durata: 2.8 },
+  { titolo: "On the Run", album: "The Dark Side of the Moon", durata: 3.5 },
+  { titolo: "Time", album: "The Dark Side of the Moon", durata: 6.9 },
+  { titolo: "The Great Gig in the Sky", album: "The Dark Side of the Moon", durata: 4.7 },
+  { titolo: "Money", album: "The Dark Side of the Moon", durata: 6.4 },
+  { titolo: "Us and Them", album: "The Dark Side of the Moon", durata: 7.8 },
+  { titolo: "Any Colour You Like", album: "The Dark Side of the Moon", durata: 3.4 },
+  { titolo: "Brain Damage", album: "The Dark Side of the Moon", durata: 3.8 },
+  { titolo: "Eclipse", album: "The Dark Side of the Moon", durata: 2.1 },
+  { titolo: "Shine On You Crazy Diamond (Parts I-V)", album: "Wish You Were Here", durata: 13.5 },
+  { titolo: "Welcome to the Machine", album: "Wish You Were Here", durata: 7.5 },
+  { titolo: "Have a Cigar", album: "Wish You Were Here", durata: 5.1 },
+  { titolo: "Wish You Were Here", album: "Wish You Were Here", durata: 5.6 },
+  { titolo: "Shine On You Crazy Diamond (Parts VI-IX)", album: "Wish You Were Here", durata: 12.5 },
+  { titolo: "Pigs on the Wing 1", album: "Animals", durata: 1.4 },
+  { titolo: "Dogs", album: "Animals", durata: 17.1 },
+  { titolo: "Pigs (Three Different Ones)", album: "Animals", durata: 11.4 },
+  { titolo: "Sheep", album: "Animals", durata: 10.3 },
+  { titolo: "Pigs on the Wing 2", album: "Animals", durata: 1.5 },
+  { titolo: "In the Flesh?", album: "The Wall", durata: 3.3 },
+  { titolo: "The Thin Ice", album: "The Wall", durata: 2.4 },
+  { titolo: "Another Brick in the Wall, Part 1", album: "The Wall", durata: 3.2 },
+  { titolo: "The Happiest Days of Our Lives", album: "The Wall", durata: 1.8 },
+  { titolo: "Another Brick in the Wall, Part 2", album: "The Wall", durata: 4.0 },
+  { titolo: "Mother", album: "The Wall", durata: 5.6 },
+  { titolo: "Goodbye Blue Sky", album: "The Wall", durata: 2.8 },
+  { titolo: "Empty Spaces", album: "The Wall", durata: 2.1 },
+  { titolo: "Young Lust", album: "The Wall", durata: 3.5 },
+  { titolo: "One of My Turns", album: "The Wall", durata: 3.6 },
+  { titolo: "Don't Leave Me Now", album: "The Wall", durata: 4.1 },
+  { titolo: "Another Brick in the Wall, Part 3", album: "The Wall", durata: 1.2 },
+  { titolo: "Goodbye Cruel World", album: "The Wall", durata: 1.2 },
+  { titolo: "Hey You", album: "The Wall", durata: 4.7 },
+  { titolo: "Is There Anybody Out There?", album: "The Wall", durata: 2.6 },
+  { titolo: "Nobody Home", album: "The Wall", durata: 3.4 },
+  { titolo: "Vera", album: "The Wall", durata: 1.4 },
+  { titolo: "Bring the Boys Back Home", album: "The Wall", durata: 1.4 },
+  { titolo: "Comfortably Numb", album: "The Wall", durata: 6.3 },
+  { titolo: "The Show Must Go On", album: "The Wall", durata: 1.6 },
+  { titolo: "In the Flesh", album: "The Wall", durata: 4.2 },
+  { titolo: "Run Like Hell", album: "The Wall", durata: 4.4 },
+  { titolo: "Waiting for the Worms", album: "The Wall", durata: 3.9 },
+  { titolo: "Stop", album: "The Wall", durata: 0.5 },
+  { titolo: "The Trial", album: "The Wall", durata: 5.3 },
+  { titolo: "Outside the Wall", album: "The Wall", durata: 1.7 },
+  { titolo: "The Post War Dream", album: "The Final Cut", durata: 3.0 },
+  { titolo: "Your Possible Pasts", album: "The Final Cut", durata: 4.4 },
+  { titolo: "One of the Few", album: "The Final Cut", durata: 1.3 },
+  { titolo: "When the Tigers Broke Free", album: "The Final Cut", durata: 3.3 },
+  { titolo: "The Hero's Return", album: "The Final Cut", durata: 2.9 },
+  { titolo: "The Gunner's Dream", album: "The Final Cut", durata: 5.2 },
+  { titolo: "Paranoid Eyes", album: "The Final Cut", durata: 3.6 },
+  { titolo: "Get Your Filthy Hands Off My Desert", album: "The Final Cut", durata: 1.3 },
+  { titolo: "The Fletcher Memorial Home", album: "The Final Cut", durata: 4.1 },
+  { titolo: "Southampton Dock", album: "The Final Cut", durata: 2.2 },
+  { titolo: "The Final Cut", album: "The Final Cut", durata: 4.8 },
+  { titolo: "Not Now John", album: "The Final Cut", durata: 5.0 },
+  { titolo: "Two Suns in the Sunset", album: "The Final Cut", durata: 5.4 },
+  { titolo: "Signs of Life", album: "A Momentary Lapse of Reason", durata: 4.4 },
+  { titolo: "Learning to Fly", album: "A Momentary Lapse of Reason", durata: 4.9 },
+  { titolo: "The Dogs of War", album: "A Momentary Lapse of Reason", durata: 6.2 },
+  { titolo: "One Slip", album: "A Momentary Lapse of Reason", durata: 5.1 },
+  { titolo: "On the Turning Away", album: "A Momentary Lapse of Reason", durata: 5.7 },
+  { titolo: "Yet Another Movie", album: "A Momentary Lapse of Reason", durata: 6.2 },
+  { titolo: "Round and Around", album: "A Momentary Lapse of Reason", durata: 1.2 },
+  { titolo: "A New Machine (Part 1)", album: "A Momentary Lapse of Reason", durata: 1.8 },
+  { titolo: "Terminal Frost", album: "A Momentary Lapse of Reason", durata: 6.2 },
+  { titolo: "A New Machine (Part 2)", album: "A Momentary Lapse of Reason", durata: 0.6 },
+  { titolo: "Sorrow", album: "A Momentary Lapse of Reason", durata: 8.8 },
+  { titolo: "Cluster One", album: "The Division Bell", durata: 5.9 },
+  { titolo: "What Do You Want from Me", album: "The Division Bell", durata: 4.4 },
+  { titolo: "Poles Apart", album: "The Division Bell", durata: 7.1 },
+  { titolo: "Marooned", album: "The Division Bell", durata: 5.5 },
+  { titolo: "A Great Day for Freedom", album: "The Division Bell", durata: 4.3 },
+  { titolo: "Wearing the Inside Out", album: "The Division Bell", durata: 6.5 },
+  { titolo: "Take It Back", album: "The Division Bell", durata: 6.2 },
+  { titolo: "Coming Back to Life", album: "The Division Bell", durata: 6.3 },
+  { titolo: "Keep Talking", album: "The Division Bell", durata: 6.2 },
+  { titolo: "Lost for Words", album: "The Division Bell", durata: 5.2 },
+  { titolo: "High Hopes", album: "The Division Bell", durata: 8.5 },
+  { titolo: "Things Left Unsaid", album: "The Endless River", durata: 4.4 },
+  { titolo: "It's What We Do", album: "The Endless River", durata: 6.3 },
+  { titolo: "Ebb and Flow", album: "The Endless River", durata: 1.9 },
+  { titolo: "Sum", album: "The Endless River", durata: 4.8 },
+  { titolo: "Skins", album: "The Endless River", durata: 2.6 },
+  { titolo: "Unsung", album: "The Endless River", durata: 1.1 },
+  { titolo: "Anisina", album: "The Endless River", durata: 3.3 },
+  { titolo: "The Lost Art of Conversation", album: "The Endless River", durata: 1.7 },
+  { titolo: "On Noodle Street", album: "The Endless River", durata: 1.7 },
+  { titolo: "Night Light", album: "The Endless River", durata: 1.7 },
+  { titolo: "Allons-y (Part 1)", album: "The Endless River", durata: 1.5 },
+  { titolo: "Autumn '68", album: "The Endless River", durata: 1.6 },
+  { titolo: "Allons-y (Part 2)", album: "The Endless River", durata: 1.8 },
+  { titolo: "Talkin' Hawkin'", album: "The Endless River", durata: 3.5 },
+  { titolo: "Calling", album: "The Endless River", durata: 3.6 },
+  { titolo: "Eyes to Pearls", album: "The Endless River", durata: 1.9 },
+  { titolo: "Surfacing", album: "The Endless River", durata: 2.7 },
+  { titolo: "Louder than Words", album: "The Endless River", durata: 6.6 }
+);
+
+let catalogoCustom = JSON.parse(localStorage.getItem('cd_catalogo_custom') || '{"aggiunti":[],"rimossi":[]}');
+if (!catalogoCustom.aggiunti) catalogoCustom.aggiunti = [];
+if (!catalogoCustom.rimossi) catalogoCustom.rimossi = [];
+
+let scaletta = JSON.parse(localStorage.getItem('cd_setlist') || '[]');
+
+function getCatalogo() {
+  const base = CATALOGO_BASE.filter(s => !catalogoCustom.rimossi.includes(s.titolo));
+  const custom = catalogoCustom.aggiunti.filter(s => !catalogoCustom.rimossi.includes(s.titolo));
+  return [...base, ...custom];
+}
+
+function isBranoBase(titolo) { return CATALOGO_BASE.some(s => s.titolo === titolo); }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function popolaFiltroAlbum() {
+  const catalogo = getCatalogo();
+  const albums = [...new Set(catalogo.map(s => s.album))].sort();
+  const select = document.getElementById('album-filter');
+  const current = select.value;
+  select.innerHTML = '<option value="">🎵 Tutti gli album</option>' +
+    albums.map(a => `<option value="${a.replace(/"/g, '&quot;')}">${a}</option>`).join('');
+  if (albums.includes(current)) select.value = current;
+}
+
+function renderCatalogo() {
+  const catalogo = getCatalogo();
+  const q = document.getElementById('search').value.toLowerCase().trim();
+  const albumFiltro = document.getElementById('album-filter').value;
+  const catalogEl = document.getElementById('catalog');
+
+  let filtrate = catalogo;
+  if (albumFiltro) filtrate = filtrate.filter(s => s.album === albumFiltro);
+  if (q) filtrate = filtrate.filter(s =>
+    s.titolo.toLowerCase().includes(q) || s.album.toLowerCase().includes(q)
+  );
+
+  document.getElementById('catalog-count').textContent = `(${catalogo.length})`;
+
+  if (filtrate.length === 0) {
+    catalogEl.innerHTML = '<div class="empty">Nessun brano trovato</div>';
+    return;
+  }
+
+  catalogEl.innerHTML = filtrate.map(s => {
+    const titoloSafe = s.titolo.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    return `<div class="song-item">
+      <div style="flex:1;" onclick="aggiungi('${titoloSafe}')">
+        <div>${s.titolo}</div>
+        <div class="album">${s.album || '—'}</div>
+      </div>
+      <span class="add-icon" onclick="aggiungi('${titoloSafe}')" style="cursor:pointer;">+</span>
+      <button class="del-icon" title="Rimuovi dal catalogo" onclick="event.stopPropagation(); rimuoviDalCatalogo('${titoloSafe}')">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+function renderScaletta() {
+  const setEl = document.getElementById('setlist');
+  const count = scaletta.length;
+  document.getElementById('setlist-count').textContent = `(${count})`;
+  document.getElementById('print-btn').disabled = count === 0;
+  document.getElementById('clear-btn').disabled = count === 0;
+
+  const totMin = scaletta.reduce((a, s) => a + (s.durata || 0), 0);
+  const h = Math.floor(totMin / 60);
+  const m = Math.floor(totMin % 60);
+  document.getElementById('total-time').textContent =
+    `Durata: ${h > 0 ? h + 'h ' : ''}${m}min`;
+
+  if (count === 0) {
+    setEl.innerHTML = '<div class="empty">Clicca sui brani a sinistra per aggiungerli alla scaletta</div>';
+    return;
+  }
+
+  setEl.innerHTML = scaletta.map((s, i) => `
+    <div class="setlist-item" draggable="true" data-index="${i}">
+      <div class="num">${i + 1}</div>
+      <div class="title">
+        ${s.titolo}
+        <div class="album">${s.album || '—'}</div>
+      </div>
+      <div class="voices">
+        <input type="text"
+               placeholder="👤 Voce solista"
+               value="${(s.voceSolista || '').replace(/"/g, '&quot;')}"
+               oninput="aggiornaVoce(${i}, 'voceSolista', this.value)"
+               onmousedown="event.stopPropagation()"
+               ondragstart="event.stopPropagation()">
+        <input type="text"
+               placeholder="👥 Coro"
+               value="${(s.coro || '').replace(/"/g, '&quot;')}"
+               oninput="aggiornaVoce(${i}, 'coro', this.value)"
+               onmousedown="event.stopPropagation()"
+               ondragstart="event.stopPropagation()">
+        <span class="voice-print">${s.voceSolista ? '🎤 <b>' + s.voceSolista + '</b>' : ''}${s.voceSolista && s.coro ? '<br>' : ''}${s.coro ? '👥 ' + s.coro : ''}</span>
+      </div>
+      <button class="btn-del" onclick="rimuovi(${i}); event.stopPropagation();">×</button>
+    </div>
+  `).join('');
+
+  setupDragDrop();
+}
+
+function aggiornaVoce(index, campo, valore) {
+  if (scaletta[index]) {
+    scaletta[index][campo] = valore;
+    salva();
+    const item = document.querySelector(`.setlist-item[data-index="${index}"] .voice-print`);
+    if (item) {
+      const s = scaletta[index];
+      item.innerHTML = `${s.voceSolista ? '🎤 <b>' + s.voceSolista + '</b>' : ''}${s.voceSolista && s.coro ? '<br>' : ''}${s.coro ? '👥 ' + s.coro : ''}`;
+    }
+  }
+}
+
+function toggleForm() { document.getElementById('add-form').classList.toggle('open'); }
+
+function aggiungiAlCatalogo() {
+  const titolo = document.getElementById('new-titolo').value.trim();
+  const album = document.getElementById('new-album').value.trim();
+  const durata = parseFloat(document.getElementById('new-durata').value) || 0;
+  if (!titolo) { showToast('⚠️ Inserisci almeno il titolo'); return; }
+  const esistente = getCatalogo().find(s => s.titolo.toLowerCase() === titolo.toLowerCase());
+  if (esistente) { showToast('⚠️ Brano già presente'); return; }
+  if (catalogoCustom.rimossi.includes(titolo)) {
+    catalogoCustom.rimossi = catalogoCustom.rimossi.filter(t => t !== titolo);
+  } else {
+    catalogoCustom.aggiunti.push({ titolo, album, durata });
+  }
+  salvaCatalogo();
+  document.getElementById('new-titolo').value = '';
+  document.getElementById('new-album').value = '';
+  document.getElementById('new-durata').value = '';
+  document.getElementById('add-form').classList.remove('open');
+  popolaFiltroAlbum();
+  renderCatalogo();
+  showToast('✅ Brano aggiunto');
+}
+
+function rimuoviDalCatalogo(titolo) {
+  if (!confirm(`Rimuovere "${titolo}" dal catalogo?`)) return;
+  if (scaletta.some(s => s.titolo === titolo)) {
+    if (!confirm(`"${titolo}" è in scaletta. Rimuoverlo anche da lì?`)) return;
+    scaletta = scaletta.filter(s => s.titolo !== titolo);
+    salva();
+    renderScaletta();
+  }
+  catalogoCustom.aggiunti = catalogoCustom.aggiunti.filter(s => s.titolo !== titolo);
+  if (isBranoBase(titolo) && !catalogoCustom.rimossi.includes(titolo)) {
+    catalogoCustom.rimossi.push(titolo);
+  }
+  salvaCatalogo();
+  popolaFiltroAlbum();
+  renderCatalogo();
+  showToast('🗑 Brano rimosso');
+}
+
+function aggiungi(titolo) {
+  const brano = getCatalogo().find(s => s.titolo === titolo);
+  if (brano) {
+    scaletta.push({ ...brano, voceSolista: brano.voceSolista || '', coro: brano.coro || '' });
+    salva();
+    renderScaletta();
+  }
+}
+
+function rimuovi(i) { scaletta.splice(i, 1); salva(); renderScaletta(); }
+
+function clearSetlist() {
+  if (confirm('Svuotare tutta la scaletta?')) { scaletta = []; salva(); renderScaletta(); }
+}
+
+function salva() { localStorage.setItem('cd_setlist', JSON.stringify(scaletta)); }
+function salvaCatalogo() { localStorage.setItem('cd_catalogo_custom', JSON.stringify(catalogoCustom)); }
+
+let dragIndex = null;
+function setupDragDrop() {
+  document.querySelectorAll('.setlist-item').forEach(item => {
+    item.addEventListener('dragstart', e => {
+      dragIndex = parseInt(item.dataset.index);
+      item.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    item.addEventListener('dragend', () => {
+      item.classList.remove('dragging');
+      document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    });
+    item.addEventListener('dragover', e => {
+      e.preventDefault();
+      item.classList.add('drag-over');
+    });
+    item.addEventListener('dragleave', () => item.classList.remove('drag-over'));
+    item.addEventListener('drop', e => {
+      e.preventDefault();
+      item.classList.remove('drag-over');
+      const targetIndex = parseInt(item.dataset.index);
+      if (dragIndex === null || dragIndex === targetIndex) return;
+      const moved = scaletta.splice(dragIndex, 1)[0];
+      scaletta.splice(targetIndex, 0, moved);
+      dragIndex = null;
+      salva();
+      renderScaletta();
+    });
+  });
+}
+
+function calcolaStileStampa() {
+  const n = scaletta.length;
+  if (n === 0) return;
+  const root = document.documentElement;
+  const setlist = document.getElementById('setlist');
+
+  setlist.style.height = 'auto';
+  setlist.style.gap = '4px';
+  document.querySelectorAll('.setlist-item').forEach(el => {
+    el.style.height = '';
+    el.style.minHeight = '';
+  });
+  root.style.setProperty('--print-font-size', '13px');
+  root.style.setProperty('--print-padding', '6px 10px');
+
+  const A4_H = 1047;
+  const OVERHEAD = 175;
+  const spazioLista = A4_H - OVERHEAD;
+  const gapTotale = (n - 1) * 4;
+  const altezzaRiga = (spazioLista - gapTotale) / n;
+
+  let fontSize = Math.min(22, Math.max(8, altezzaRiga * 0.36));
+  let padding = Math.max(2, Math.min(14, altezzaRiga * 0.14));
+  let numSize = Math.max(14, Math.min(38, altezzaRiga * 0.48));
+  let numFont = Math.max(8, Math.min(18, altezzaRiga * 0.26));
+  let albumFont = Math.max(7, Math.min(12, altezzaRiga * 0.16));
+
+  fontSize = Math.round(fontSize * 2) / 2;
+  padding = Math.round(padding * 2) / 2;
+
+  root.style.setProperty('--print-font-size', fontSize + 'px');
+  root.style.setProperty('--print-padding', padding + 'px 10px');
+  root.style.setProperty('--print-num-size', numSize + 'px');
+  root.style.setProperty('--print-num-font', numFont + 'px');
+  root.style.setProperty('--print-album-font', albumFont + 'px');
+
+  document.querySelectorAll('.setlist-item').forEach(el => {
+    el.style.height = altezzaRiga + 'px';
+    el.style.minHeight = altezzaRiga + 'px';
+  });
+
+  setlist.style.height = (n * altezzaRiga + gapTotale) + 'px';
+}
+
+function printPDF() {
+  calcolaStileStampa();
+  window.print();
+}
+
+document.getElementById('search').addEventListener('input', renderCatalogo);
+['new-titolo','new-album','new-durata'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', e => {
+    if (e.key === 'Enter') aggiungiAlCatalogo();
+  });
+});
+
+popolaFiltroAlbum();
+renderCatalogo();
+renderScaletta();
+</script>
+</body>
+</html>
