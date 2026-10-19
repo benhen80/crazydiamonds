@@ -21,6 +21,57 @@
   header h1 { font-size: 2em; color: #d4af37; letter-spacing: 3px; text-transform: uppercase; }
   header p { color: #888; font-size: 0.9em; margin-top: 5px; }
 
+  .config-bar {
+    max-width: 1400px; margin: 0 auto 20px auto;
+    background: #1a1a1a; border: 1px solid #444; border-radius: 8px;
+    padding: 12px 18px; display: flex; align-items: center; gap: 12px;
+    flex-wrap: wrap;
+  }
+  .config-bar label { color: #d4af37; font-weight: bold; font-size: 0.9em; }
+  .config-bar .band-members {
+    flex: 1; color: #ccc; font-size: 0.85em;
+    font-style: italic; min-width: 200px;
+  }
+  .config-bar .band-members:empty::before {
+    content: "⚠️ Nessun nome configurato — clicca 'Configura band'";
+    color: #ff8888; font-style: normal;
+  }
+  .btn-config {
+    background: transparent; color: #d4af37; border: 1px solid #d4af37;
+    padding: 6px 14px; border-radius: 6px; cursor: pointer;
+    font-size: 0.85em; font-weight: bold; transition: 0.2s;
+  }
+  .btn-config:hover { background: #d4af37; color: #0a0a0a; }
+
+  /* Modale configurazione */
+  .modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.8); z-index: 500;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #1a1a1a; border: 1px solid #d4af37; border-radius: 12px;
+    padding: 24px; max-width: 500px; width: 90%;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.7);
+  }
+  .modal h3 {
+    color: #d4af37; margin-bottom: 8px;
+    font-size: 1.2em; letter-spacing: 1px;
+  }
+  .modal p { color: #888; font-size: 0.85em; margin-bottom: 16px; }
+  .modal textarea {
+    width: 100%; min-height: 140px; padding: 10px;
+    background: #0f0f0f; border: 1px solid #444; border-radius: 6px;
+    color: #e0e0e0; font-family: inherit; font-size: 0.9em;
+    resize: vertical;
+  }
+  .modal textarea:focus { outline: none; border-color: #d4af37; }
+  .modal .modal-actions {
+    display: flex; gap: 10px; margin-top: 16px;
+  }
+  .modal .modal-actions button { flex: 1; }
+
   .container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1400px; margin: 0 auto; }
   @media (max-width: 900px) { .container { grid-template-columns: 1fr; } }
 
@@ -102,18 +153,58 @@
 
   /* Voci nella scaletta */
   .setlist-item .voices {
-    display: flex; flex-direction: column; gap: 2px;
-    flex-shrink: 0; width: 160px;
+    display: flex; flex-direction: column; gap: 4px;
+    flex-shrink: 0; width: 180px;
   }
-  .setlist-item .voices input {
+  .setlist-item .voices select {
     background: #0f0f0f; border: 1px solid #444; border-radius: 4px;
-    color: #e0e0e0; font-size: 0.72em; padding: 3px 6px;
-    font-family: inherit; width: 100%;
+    color: #e0e0e0; font-size: 0.75em; padding: 4px 6px;
+    font-family: inherit; width: 100%; cursor: pointer;
   }
-  .setlist-item .voices input:focus { outline: none; border-color: #d4af37; }
-  .setlist-item .voices input::placeholder { color: #555; }
+  .setlist-item .voices select:focus { outline: none; border-color: #d4af37; }
+
+  /* Coro multi-select */
+  .coro-box {
+    position: relative;
+  }
+  .coro-btn {
+    width: 100%; background: #0f0f0f; border: 1px solid #444;
+    border-radius: 4px; color: #e0e0e0; font-size: 0.75em;
+    padding: 4px 6px; cursor: pointer; text-align: left;
+    font-family: inherit;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .coro-btn:focus { outline: none; border-color: #d4af37; }
+  .coro-btn .placeholder { color: #666; }
+  .coro-dropdown {
+    display: none; position: absolute; top: 100%; left: 0; right: 0;
+    background: #1a1a1a; border: 1px solid #d4af37; border-radius: 4px;
+    margin-top: 2px; padding: 4px; z-index: 100;
+    max-height: 220px; overflow-y: auto;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.8);
+  }
+  .coro-dropdown.open { display: block; }
+  .coro-dropdown label {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 8px; font-size: 0.78em; cursor: pointer;
+    border-radius: 3px; color: #e0e0e0;
+  }
+  .coro-dropdown label:hover { background: #2a2a2a; }
+  .coro-dropdown input[type="checkbox"] {
+    accent-color: #d4af37; cursor: pointer;
+  }
+  .coro-dropdown .dropdown-divider {
+    height: 1px; background: #333; margin: 4px 0;
+  }
+  .coro-dropdown .btn-mini {
+    width: 100%; background: transparent; border: none;
+    color: #d4af37; font-size: 0.75em; padding: 5px 8px;
+    cursor: pointer; text-align: left; font-weight: bold;
+  }
+  .coro-dropdown .btn-mini:hover { background: #2a2a2a; }
+
   .setlist-item .voices .voice-print { display: none; }
-  @media (max-width: 900px) { .setlist-item .voices { width: 120px; } }
+  @media (max-width: 900px) { .setlist-item .voices { width: 140px; } }
 
   .btn {
     background: #d4af37; color: #0a0a0a; border: none;
@@ -152,13 +243,9 @@
 
   @media print {
     @page { size: A4 portrait; margin: 1cm; }
-
     * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
-    html, body {
-      background: white; color: black;
-      padding: 0; margin: 0; width: 100%; height: auto;
-    }
+    html, body { background: white; color: black; padding: 0; margin: 0; width: 100%; height: auto; }
     body { font-size: 11px; }
 
     header {
@@ -169,8 +256,8 @@
     header h1 { color: black; font-size: 1.7em; letter-spacing: 2px; }
     header p { color: #555; font-size: 0.8em; margin-top: 2px; }
 
+    .config-bar, .modal-overlay { display: none !important; }
     .container { display: block; max-width: 100%; width: 100%; }
-
     #catalog-panel, .search-box, .album-filter, .btn-toggle-form,
     .add-form, .actions, .btn-del, .toast, .empty { display: none !important; }
 
@@ -205,14 +292,14 @@
     }
     .setlist-item .album { color: #666; font-size: var(--print-album-font, 11px); }
 
-    /* Voci nel PDF */
     .setlist-item .voices {
       display: flex; flex-direction: column; gap: 0;
-      width: 32%; flex-shrink: 0; text-align: right;
+      width: 35%; flex-shrink: 0; text-align: right;
       font-size: calc(var(--print-font-size, 13px) * 0.8);
       line-height: 1.15;
     }
-    .setlist-item .voices input { display: none; }
+    .setlist-item .voices select,
+    .setlist-item .voices .coro-box { display: none; }
     .setlist-item .voices .voice-print { display: block; }
     .setlist-item .voices .voice-print:empty { display: none; }
     .setlist-item .voices .voice-print b { font-weight: bold; }
@@ -232,6 +319,25 @@
   <h1>💎 Crazy Diamonds</h1>
   <p>Pink Floyd Tribute Band — Scaletta Live</p>
 </header>
+
+<div class="config-bar">
+  <label>🎤 Band:</label>
+  <span class="band-members" id="band-members-display"></span>
+  <button class="btn-config" onclick="apriConfigurazione()">⚙️ Configura band</button>
+</div>
+
+<!-- MODALE CONFIGURAZIONE -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <h3>⚙️ Configura la band</h3>
+    <p>Inserisci i nomi dei componenti della band, <strong>uno per riga</strong> (o separati da virgola). Appariranno nelle tendine della scaletta.</p>
+    <textarea id="band-input" placeholder="Esempio:&#10;Marco&#10;Luca&#10;Anna&#10;Sara"></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="chiudiConfigurazione()">Annulla</button>
+      <button class="btn" onclick="salvaConfigurazione()">💾 Salva</button>
+    </div>
+  </div>
+</div>
 
 <div class="container">
   <div class="panel" id="catalog-panel">
@@ -440,6 +546,47 @@ CATALOGO_BASE.push(
   { titolo: "Louder than Words", album: "The Endless River", durata: 6.6 }
 );
 
+// ========== BAND ==========
+let membriBand = JSON.parse(localStorage.getItem('cd_membri_band') || '[]');
+
+function salvaMembri() {
+  localStorage.setItem('cd_membri_band', JSON.stringify(membriBand));
+}
+
+function aggiornaBarraBand() {
+  const el = document.getElementById('band-members-display');
+  if (membriBand.length === 0) {
+    el.textContent = '';
+  } else {
+    el.textContent = membriBand.join(' · ');
+  }
+}
+
+function apriConfigurazione() {
+  const ta = document.getElementById('band-input');
+  ta.value = membriBand.join('\n');
+  document.getElementById('modal-overlay').classList.add('open');
+  setTimeout(() => ta.focus(), 100);
+}
+
+function chiudiConfigurazione() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+function salvaConfigurazione() {
+  const raw = document.getElementById('band-input').value;
+  // Split su righe o virgole, trim, filtra vuoti, rimuovi duplicati
+  const nomi = raw.split(/[\n,]+/).map(n => n.trim()).filter(n => n.length > 0);
+  const unici = [...new Set(nomi)];
+  membriBand = unici;
+  salvaMembri();
+  aggiornaBarraBand();
+  chiudiConfigurazione();
+  renderScaletta();
+  showToast(`✅ Band aggiornata (${membriBand.length} membri)`);
+}
+
+// ========== STATO ==========
 let catalogoCustom = JSON.parse(localStorage.getItem('cd_catalogo_custom') || '{"aggiunti":[],"rimossi":[]}');
 if (!catalogoCustom.aggiunti) catalogoCustom.aggiunti = [];
 if (!catalogoCustom.rimossi) catalogoCustom.rimossi = [];
@@ -504,6 +651,15 @@ function renderCatalogo() {
   }).join('');
 }
 
+function opzioniSelect(lista, selezionato) {
+  let html = `<option value="">—</option>`;
+  for (const nome of lista) {
+    const sel = (nome === selezionato) ? ' selected' : '';
+    html += `<option value="${nome.replace(/"/g, '&quot;')}"${sel}>${nome}</option>`;
+  }
+  return html;
+}
+
 function renderScaletta() {
   const setEl = document.getElementById('setlist');
   const count = scaletta.length;
@@ -522,7 +678,24 @@ function renderScaletta() {
     return;
   }
 
-  setEl.innerHTML = scaletta.map((s, i) => `
+  setEl.innerHTML = scaletta.map((s, i) => {
+    // Coro: array di nomi
+    const coroArr = Array.isArray(s.coro) ? s.coro : [];
+    const coroTxt = coroArr.length === 0
+      ? '<span class="placeholder">👥 Coro...</span>'
+      : '👥 ' + coroArr.join(', ');
+    // Voci dropdown
+    const coroChecks = membriBand.map(nome => {
+      const checked = coroArr.includes(nome) ? 'checked' : '';
+      return `<label><input type="checkbox" ${checked}
+              onchange="toggleCoro(${i}, '${nome.replace(/'/g, "\\'")}', this.checked)"> ${nome}</label>`;
+    }).join('');
+    const voicePrint = `
+      ${s.voceSolista ? '🎤 <b>' + s.voceSolista + '</b>' : ''}
+      ${s.voceSolista && coroArr.length > 0 ? '<br>' : ''}
+      ${coroArr.length > 0 ? '👥 ' + coroArr.join(', ') : ''}
+    `;
+    return `
     <div class="setlist-item" draggable="true" data-index="${i}">
       <div class="num">${i + 1}</div>
       <div class="title">
@@ -530,35 +703,113 @@ function renderScaletta() {
         <div class="album">${s.album || '—'}</div>
       </div>
       <div class="voices">
-        <input type="text"
-               placeholder="👤 Voce solista"
-               value="${(s.voceSolista || '').replace(/"/g, '&quot;')}"
-               oninput="aggiornaVoce(${i}, 'voceSolista', this.value)"
-               onmousedown="event.stopPropagation()"
-               ondragstart="event.stopPropagation()">
-        <input type="text"
-               placeholder="👥 Coro"
-               value="${(s.coro || '').replace(/"/g, '&quot;')}"
-               oninput="aggiornaVoce(${i}, 'coro', this.value)"
-               onmousedown="event.stopPropagation()"
-               ondragstart="event.stopPropagation()">
-        <span class="voice-print">${s.voceSolista ? '🎤 <b>' + s.voceSolista + '</b>' : ''}${s.voceSolista && s.coro ? '<br>' : ''}${s.coro ? '👥 ' + s.coro : ''}</span>
+        <select onchange="aggiornaSolista(${i}, this.value)"
+                onmousedown="event.stopPropagation()"
+                title="Voce solista">
+          ${opzioniSelect(membriBand, s.voceSolista)}
+        </select>
+        <div class="coro-box">
+          <button class="coro-btn" onclick="toggleCoroDropdown(event, ${i})"
+                  onmousedown="event.stopPropagation()"
+                  title="Coro (selezione multipla)">${coroTxt}</button>
+          <div class="coro-dropdown" id="coro-dd-${i}">
+            ${membriBand.length === 0
+              ? '<div style="padding:6px;font-size:0.75em;color:#888;">Configura prima i nomi della band</div>'
+              : `<button class="btn-mini" onclick="impostaCoroTutti(${i})">Seleziona tutti</button>
+                 <button class="btn-mini" onclick="impostaCoroNessuno(${i})">Deseleziona tutti</button>
+                 <div class="dropdown-divider"></div>
+                 ${coroChecks}`}
+          </div>
+        </div>
+        <span class="voice-print">${voicePrint}</span>
       </div>
       <button class="btn-del" onclick="rimuovi(${i}); event.stopPropagation();">×</button>
     </div>
-  `).join('');
+  `;
+  }).join('');
 
   setupDragDrop();
 }
 
-function aggiornaVoce(index, campo, valore) {
-  if (scaletta[index]) {
-    scaletta[index][campo] = valore;
+// Apre/chiude dropdown coro
+function toggleCoroDropdown(event, i) {
+  event.stopPropagation();
+  // chiudi tutti gli altri
+  document.querySelectorAll('.coro-dropdown').forEach(dd => {
+    if (dd.id !== 'coro-dd-' + i) dd.classList.remove('open');
+  });
+  document.getElementById('coro-dd-' + i).classList.toggle('open');
+}
+
+// Chiude dropdown cliccando fuori
+document.addEventListener('click', e => {
+  if (!e.target.closest('.coro-box')) {
+    document.querySelectorAll('.coro-dropdown').forEach(dd => dd.classList.remove('open'));
+  }
+});
+
+function toggleCoro(i, nome, checked) {
+  if (!scaletta[i]) return;
+  if (!Array.isArray(scaletta[i].coro)) scaletta[i].coro = [];
+  if (checked) {
+    if (!scaletta[i].coro.includes(nome)) scaletta[i].coro.push(nome);
+  } else {
+    scaletta[i].coro = scaletta[i].coro.filter(n => n !== nome);
+  }
+  salva();
+  aggiornaCoroUI(i);
+}
+
+function impostaCoroTutti(i) {
+  if (!scaletta[i]) return;
+  scaletta[i].coro = [...membriBand];
+  salva();
+  // aggiorna i checkbox
+  const dd = document.getElementById('coro-dd-' + i);
+  if (dd) dd.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
+  aggiornaCoroUI(i);
+}
+
+function impostaCoroNessuno(i) {
+  if (!scaletta[i]) return;
+  scaletta[i].coro = [];
+  salva();
+  const dd = document.getElementById('coro-dd-' + i);
+  if (dd) dd.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+  aggiornaCoroUI(i);
+}
+
+function aggiornaCoroUI(i) {
+  const btn = document.querySelector(`.setlist-item[data-index="${i}"] .coro-btn`);
+  const printEl = document.querySelector(`.setlist-item[data-index="${i}"] .voice-print`);
+  const arr = Array.isArray(scaletta[i].coro) ? scaletta[i].coro : [];
+  if (btn) {
+    btn.innerHTML = arr.length === 0
+      ? '<span class="placeholder">👥 Coro...</span>'
+      : '👥 ' + arr.join(', ');
+  }
+  if (printEl) {
+    const s = scaletta[i];
+    printEl.innerHTML = `
+      ${s.voceSolista ? '🎤 <b>' + s.voceSolista + '</b>' : ''}
+      ${s.voceSolista && arr.length > 0 ? '<br>' : ''}
+      ${arr.length > 0 ? '👥 ' + arr.join(', ') : ''}
+    `;
+  }
+}
+
+function aggiornaSolista(i, valore) {
+  if (scaletta[i]) {
+    scaletta[i].voceSolista = valore;
     salva();
-    const item = document.querySelector(`.setlist-item[data-index="${index}"] .voice-print`);
-    if (item) {
-      const s = scaletta[index];
-      item.innerHTML = `${s.voceSolista ? '🎤 <b>' + s.voceSolista + '</b>' : ''}${s.voceSolista && s.coro ? '<br>' : ''}${s.coro ? '👥 ' + s.coro : ''}`;
+    const printEl = document.querySelector(`.setlist-item[data-index="${i}"] .voice-print`);
+    if (printEl) {
+      const arr = Array.isArray(scaletta[i].coro) ? scaletta[i].coro : [];
+      printEl.innerHTML = `
+        ${valore ? '🎤 <b>' + valore + '</b>' : ''}
+        ${valore && arr.length > 0 ? '<br>' : ''}
+        ${arr.length > 0 ? '👥 ' + arr.join(', ') : ''}
+      `;
     }
   }
 }
@@ -608,7 +859,11 @@ function rimuoviDalCatalogo(titolo) {
 function aggiungi(titolo) {
   const brano = getCatalogo().find(s => s.titolo === titolo);
   if (brano) {
-    scaletta.push({ ...brano, voceSolista: brano.voceSolista || '', coro: brano.coro || '' });
+    scaletta.push({
+      ...brano,
+      voceSolista: brano.voceSolista || '',
+      coro: Array.isArray(brano.coro) ? brano.coro : []
+    });
     salva();
     renderScaletta();
   }
@@ -710,6 +965,8 @@ document.getElementById('search').addEventListener('input', renderCatalogo);
   });
 });
 
+// Init
+aggiornaBarraBand();
 popolaFiltroAlbum();
 renderCatalogo();
 renderScaletta();
